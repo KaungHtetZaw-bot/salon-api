@@ -14,6 +14,7 @@ import {
   publicCatalogRouter,
 } from './modules/catalog/catalog.routes';
 import { adminStaffRouter, publicStaffRouter } from './modules/staff/staff.routes';
+import { bookingsRouter } from './modules/bookings/bookings.routes';
 
 export function createApp(): express.Express {
   const app = express();
@@ -62,7 +63,8 @@ export function createApp(): express.Express {
   adminApi.use('/catalog', adminCatalogRouter);
   adminApi.use('/staff', adminStaffRouter);
   api.use('/admin', adminApi);
-  //   api.use('/bookings', bookingRouter) ← phase 4
+
+  api.use('/bookings', bookingsRouter);
 
   app.use('/api', api);
 
