@@ -15,6 +15,7 @@ import {
 } from './modules/catalog/catalog.routes';
 import { adminStaffRouter, publicStaffRouter } from './modules/staff/staff.routes';
 import { bookingsRouter } from './modules/bookings/bookings.routes';
+import { reportsRouter } from './modules/reports/reports.routes';
 import {
   adminEngagementRouter,
   loyaltyRouter,
@@ -69,6 +70,7 @@ export function createApp(): express.Express {
   adminApi.use('/catalog', adminCatalogRouter);
   adminApi.use('/staff', adminStaffRouter);
   adminApi.use(adminEngagementRouter);
+  adminApi.use('/reports', reportsRouter);
   api.use('/admin', adminApi);
 
   api.use('/bookings', bookingsRouter);
