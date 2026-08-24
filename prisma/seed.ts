@@ -144,16 +144,17 @@ async function main(): Promise<void> {
   console.log('✅ Staff profiles');
 
   // ── Categories & services ───────────────────────────────────
-  const hair = await prisma.category.upsert({
-    where: { name: 'Hair' },
-    update: {},
-    create: { name: 'Hair', displayOrder: 0 },
-  });
-  const nails = await prisma.category.upsert({
-    where: { name: 'Nails' },
-    update: {},
-    create: { name: 'Nails', displayOrder: 1 },
-  });
+  const ensureCategory = async (name: string, displayOrder: number) => {
+    const existing = await prisma.category.findFirst({ where: { name } });
+    return existing
+      ? prisma.category.update({
+          where: { id: existing.id },
+          data: { displayOrder, isActive: true },
+        })
+      : prisma.category.create({ data: { name, displayOrder } });
+  };
+  const hair = await ensureCategory('Hair', 0);
+  const nails = await ensureCategory('Nails', 1);
 
   const svc = (
     name: string,
@@ -161,12 +162,14 @@ async function main(): Promise<void> {
     basePrice: number,
     baseDurationMin: number,
     description: string,
-  ) =>
-    prisma.service.upsert({
-      where: { categoryId_name: { categoryId, name } },
-      update: {},
-      create: { name, categoryId, basePrice, baseDurationMin, description },
-    });
+  ) => {
+    const data = { name, categoryId, basePrice, baseDurationMin, description, isActive: true };
+    return prisma.service.findFirst({ where: { categoryId, name } }).then((existing) =>
+      existing
+        ? prisma.service.update({ where: { id: existing.id }, data })
+        : prisma.service.create({ data }),
+    );
+  };
 
   const [haircut, coloring, blowout, manicure, gel, pedicure] = await Promise.all([
     svc('Signature Haircut', hair.id, 25, 45, 'Consultation, wash, precision cut & finish'),

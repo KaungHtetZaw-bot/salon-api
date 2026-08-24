@@ -5,6 +5,7 @@ set -u
 
 BASE="${BASE:-http://localhost:4000}"
 EMAIL="smoke-$(date +%s)@example.com"
+PHONE="+1555$(date +%s)"   # unique per run — phone has a UNIQUE index
 PASS="Passw0rd!123"
 BODY="$(mktemp)"
 PASSED=0
@@ -38,7 +39,7 @@ jget() { # file path.to.field -> value
   ' "$1" "$2"
 }
 
-REG_PAYLOAD="{\"fullName\":\"Smoke Tester\",\"email\":\"$EMAIL\",\"phone\":\"+15550001111\",\"password\":\"$PASS\"}"
+REG_PAYLOAD="{\"fullName\":\"Smoke Tester\",\"email\":\"$EMAIL\",\"phone\":\"$PHONE\",\"password\":\"$PASS\"}"
 
 echo "── Register ──────────────────────────────────"
 

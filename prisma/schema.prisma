@@ -132,12 +132,15 @@ model DeviceToken {
 
 model Category {
   id           String  @id @default(uuid())
-  name         String  @unique
+  name         String
   displayOrder Int     @default(0) @map("display_order")
   isActive     Boolean @default(true) @map("is_active")
 
   services Service[]
 
+  // name uniqueness among ACTIVE rows via partial index (see migration
+  // `partial_unique_names`) — lets soft-deleted rows release their names.
+  @@index([name])
   @@map("categories")
 }
 
@@ -159,7 +162,8 @@ model Service {
   portfolioItems PortfolioItem[]
   rewards        Reward[]
 
-  @@unique([categoryId, name])
+  // (category_id, name) uniqueness among ACTIVE rows via partial index
+  @@index([categoryId, name])
   @@map("services")
 }
 

@@ -7,7 +7,13 @@ import { env, isDev } from './config/env';
 import swaggerSpec from './config/swagger';
 import { apiLimiter } from './middleware/rateLimiter.middleware';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware';
+import { authenticate, requireRole } from './middleware/auth.middleware';
 import { authRouter } from './modules/auth/auth.routes';
+import {
+  adminCatalogRouter,
+  publicCatalogRouter,
+} from './modules/catalog/catalog.routes';
+import { adminStaffRouter, publicStaffRouter } from './modules/staff/staff.routes';
 
 export function createApp(): express.Express {
   const app = express();
@@ -45,8 +51,17 @@ export function createApp(): express.Express {
 
   // Module routers
   api.use('/auth', authRouter);
-  //   api.use('/catalog', catalogRouter)  ← phase 3
-  //   api.use('/staff', staffRouter)      ← phase 3
+
+  // Public browsing
+  api.use('/catalog', publicCatalogRouter);
+  api.use('/staff', publicStaffRouter);
+
+  // Admin — every route below requires a valid ADMIN token
+  const adminApi = express.Router();
+  adminApi.use(authenticate, requireRole('ADMIN'));
+  adminApi.use('/catalog', adminCatalogRouter);
+  adminApi.use('/staff', adminStaffRouter);
+  api.use('/admin', adminApi);
   //   api.use('/bookings', bookingRouter) ← phase 4
 
   app.use('/api', api);
