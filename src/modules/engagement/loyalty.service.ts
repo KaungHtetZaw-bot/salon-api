@@ -88,7 +88,7 @@ export async function redeemReward(customerId: string, rewardId: string) {
   return prisma.$transaction(async (tx) => {
     const reward = await tx.reward.findFirst({
       where: { id: rewardId, isActive: true },
-      include: { service: { select: { name: true } } },
+      include: { service: { select: { id: true, name: true } } },
     });
     if (!reward) throw ApiError.notFound('Reward not found or inactive');
 

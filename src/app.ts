@@ -15,6 +15,11 @@ import {
 } from './modules/catalog/catalog.routes';
 import { adminStaffRouter, publicStaffRouter } from './modules/staff/staff.routes';
 import { bookingsRouter } from './modules/bookings/bookings.routes';
+import {
+  adminEngagementRouter,
+  loyaltyRouter,
+  reviewsRouter,
+} from './modules/engagement/engagement.routes';
 
 export function createApp(): express.Express {
   const app = express();
@@ -62,9 +67,12 @@ export function createApp(): express.Express {
   adminApi.use(authenticate, requireRole('ADMIN'));
   adminApi.use('/catalog', adminCatalogRouter);
   adminApi.use('/staff', adminStaffRouter);
+  adminApi.use(adminEngagementRouter);
   api.use('/admin', adminApi);
 
   api.use('/bookings', bookingsRouter);
+  api.use('/reviews', reviewsRouter);
+  api.use('/loyalty', loyaltyRouter);
 
   app.use('/api', api);
 
