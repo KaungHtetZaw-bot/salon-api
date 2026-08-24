@@ -12,6 +12,8 @@ const envSchema = z.object({
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
   RATE_LIMIT_WINDOW_MINUTES: z.coerce.number().int().positive().default(15),
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(200),
+  // Optional — without it, pushes run in simulated mode (logged, not sent)
+  FIREBASE_SERVICE_ACCOUNT_JSON: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

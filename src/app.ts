@@ -20,6 +20,7 @@ import {
   loyaltyRouter,
   reviewsRouter,
 } from './modules/engagement/engagement.routes';
+import { notificationsRouter } from './modules/notifications/notifications.routes';
 
 export function createApp(): express.Express {
   const app = express();
@@ -73,6 +74,7 @@ export function createApp(): express.Express {
   api.use('/bookings', bookingsRouter);
   api.use('/reviews', reviewsRouter);
   api.use('/loyalty', loyaltyRouter);
+  api.use('/notifications', notificationsRouter);
 
   app.use('/api', api);
 

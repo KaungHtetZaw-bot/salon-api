@@ -94,6 +94,7 @@ model User {
   reviews              Review[]
   loyaltyTransactions  LoyaltyTransaction[]
   redemptions          Redemption[]
+  notifications        Notification[]
 
   @@index([role])
   @@map("users")
@@ -126,6 +127,24 @@ model DeviceToken {
 
   @@index([userId])
   @@map("device_tokens")
+}
+
+// In-app notification center — every push attempt is logged here,
+// so users never miss anything even if they have no device registered.
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  title     String
+  body      String
+  data      Json?
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+  @@map("notifications")
 }
 
 // ─────────────────────────── Catalog ─────────────────────────

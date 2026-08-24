@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { prisma } from '../../config/prisma';
 import { ApiError } from '../../utils/ApiError';
 import type { AuthenticatedUser } from '../../middleware/auth.middleware';
+import { formatDateTime, notifyUserAsync } from '../notifications/notifier';
 import {
   LEAD_MINUTES,
   SLOT_STEP_MIN,
@@ -289,6 +290,13 @@ export async function createAppointment(customerId: string, input: CreateAppoint
       },
       include: APPT_INCLUDE,
     });
+
+    notifyUserAsync(customerId, {
+      title: 'Appointment booked ✨',
+      body: `${created.service.name} with ${created.staffProfile.user.fullName} · ${formatDateTime(created.scheduledFor)}`,
+      data: { appointmentId: created.id, type: 'booking_created' },
+    });
+
     return serialize(created as AppointmentWithRelations);
   } catch (err) {
     // Race safety net: two customers hitting "book" simultaneously.
@@ -373,7 +381,7 @@ export async function cancelAppointment(
 
   const cancelledBy = user.role === 'CUSTOMER' ? 'CUSTOMER' : user.role;
 
-  return prisma.appointment
+  const updated = await prisma.appointment
     .update({
       where: { id },
       data: {
@@ -385,6 +393,23 @@ export async function cancelAppointment(
       include: APPT_INCLUDE,
     })
     .then((a) => serialize(a as AppointmentWithRelations));
+
+  // Tell the party that didn't perform the cancellation.
+  if (cancelledBy === 'CUSTOMER') {
+    notifyUserAsync(apt.staffProfileId, {
+      title: 'Booking cancelled',
+      body: `${apt.customerId === user.id ? 'A customer' : 'Customer'} cancelled ${formatDateTime(apt.scheduledFor)} — slot is free again`,
+      data: { appointmentId: apt.id, type: 'booking_cancelled' },
+    });
+  } else {
+    notifyUserAsync(apt.customerId, {
+      title: 'Appointment cancelled',
+      body: `Your booking on ${formatDateTime(apt.scheduledFor)} was cancelled by the salon${reason ? ` — ${reason}` : ''}`,
+      data: { appointmentId: apt.id, type: 'booking_cancelled' },
+    });
+  }
+
+  return updated;
 }
 
 export async function rescheduleAppointment(
@@ -426,6 +451,13 @@ export async function rescheduleAppointment(
       data: { scheduledFor: start, endsAt: end },
       include: APPT_INCLUDE,
     });
+
+    notifyUserAsync(apt.staffProfileId, {
+      title: 'Appointment rescheduled',
+      body: `Moved to ${formatDateTime(start)}`,
+      data: { appointmentId: apt.id, type: 'booking_rescheduled' },
+    });
+
     return serialize(updated as AppointmentWithRelations);
   } catch (err) {
     if (isExclusionViolation(err)) {
@@ -497,6 +529,13 @@ export async function addWalkIn(actor: NonNullable<AuthenticatedUser>, input: Wa
       },
       include: APPT_INCLUDE,
     });
+
+    notifyUserAsync(customerId, {
+      title: 'Welcome in! 💅',
+      body: `${created.service.name} with ${created.staffProfile.user.fullName} — see you shortly`,
+      data: { appointmentId: created.id, type: 'walk_in' },
+    });
+
     return serialize(created as AppointmentWithRelations);
   } catch (err) {
     if (isExclusionViolation(err)) throw ApiError.conflict('Slot just taken');
@@ -563,7 +602,23 @@ export async function updateStatus(
     return tx.appointment.findUnique({ where: { id }, include: APPT_INCLUDE });
   });
 
-  return serialize(result as AppointmentWithRelations);
+  const done = serialize(result as AppointmentWithRelations);
+
+  if (input.status === 'COMPLETED') {
+    notifyUserAsync(apt.customerId, {
+      title: 'Visit completed 💖',
+      body: 'Thanks for coming! Loyalty points have been added to your account.',
+      data: { appointmentId: apt.id, type: 'visit_completed' },
+    });
+  } else if (input.status === 'CANCELLED') {
+    notifyUserAsync(apt.customerId, {
+      title: 'Appointment cancelled',
+      body: `Your booking on ${formatDateTime(apt.scheduledFor)} was cancelled by the salon${input.reason ? ` — ${input.reason}` : ''}`,
+      data: { appointmentId: apt.id, type: 'booking_cancelled' },
+    });
+  }
+
+  return done;
 }
 
 export async function getSchedule(
