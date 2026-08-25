@@ -24,7 +24,8 @@ const ACTIVE_STATUSES = ['PENDING', 'CONFIRMED'] as const;
 const APPT_INCLUDE = {
   customer: { select: { id: true, fullName: true, email: true } },
   staffProfile: { select: { id: true, user: { select: { fullName: true } } } },
-  service: { select: { id: true, name: true } },
+  service: { select: { id: true, name: true, baseDurationMin: true } },
+  review: { select: { id: true } },
 } as const;
 // NOTE: include returns ALL scalar columns too, so cancellation fields
 // (cancelledBy/cancelReason/cancelledAt) are present at runtime even though
@@ -43,7 +44,8 @@ type AppointmentWithRelations = {
   cancelledAt: Date | null;
   customer: { id: string; fullName: string; email: string };
   staffProfile: { id: string; user: { fullName: string } };
-  service: { id: string; name: string };
+  service: { id: string; name: string; baseDurationMin: number };
+  review: { id: string } | null;
 };
 
 function serialize(a: AppointmentWithRelations) {
@@ -57,7 +59,8 @@ function serialize(a: AppointmentWithRelations) {
     notes: a.notes,
     customer: { id: a.customer.id, fullName: a.customer.fullName },
     staff: { id: a.staffProfile.id, fullName: a.staffProfile.user.fullName },
-    service: { id: a.service.id, name: a.service.name },
+    service: { id: a.service.id, name: a.service.name, durationMin: a.service.baseDurationMin },
+    hasReview: a.review !== null,
     ...(a.cancelledAt
       ? {
           cancelledBy: a.cancelledBy,

@@ -28,6 +28,7 @@ export async function listCategories() {
       id: true,
       name: true,
       displayOrder: true,
+      imageUrl: true,
       services: {
         where: { isActive: true },
         orderBy: { name: 'asc' },

@@ -2,8 +2,10 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import compression from 'compression';
 import swaggerUi from 'swagger-ui-express';
 import { env, isDev } from './config/env';
+import { prisma } from './config/prisma';
 import swaggerSpec from './config/swagger';
 import { apiLimiter } from './middleware/rateLimiter.middleware';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware';
@@ -26,8 +28,14 @@ import { notificationsRouter } from './modules/notifications/notifications.route
 export function createApp(): express.Express {
   const app = express();
 
+  // Behind nginx/ALB/etc: trust one proxy hop so rate limiting sees real IPs.
+  if (env.TRUST_PROXY) {
+    app.set('trust proxy', 1);
+  }
+
   // Security & parsing
   app.use(helmet());
+  app.use(compression());
   app.use(
     cors({
       origin: env.CORS_ORIGIN === '*' ? true : env.CORS_ORIGIN.split(','),
@@ -51,10 +59,24 @@ export function createApp(): express.Express {
     });
   });
 
+  // Readiness probe — verifies the database connection for orchestrators
+  app.get('/health/ready', async (_req, res) => {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      res.json({ success: true, status: 'ready', database: 'up' });
+    } catch {
+      res.status(503).json({ success: false, status: 'degraded', database: 'down' });
+    }
+  });
+
   // API surface
   const api = express.Router();
   api.use(apiLimiter);
 
+  // Machine-readable OpenAPI document + interactive UI
+  api.get('/docs/json', (_req, res) => {
+    res.json(swaggerSpec);
+  });
   api.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
   // Module routers

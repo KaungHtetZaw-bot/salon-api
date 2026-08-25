@@ -144,17 +144,20 @@ async function main(): Promise<void> {
   console.log('✅ Staff profiles');
 
   // ── Categories & services ───────────────────────────────────
-  const ensureCategory = async (name: string, displayOrder: number) => {
+  const imageFor = (label: string, w = 900, h = 560) =>
+    `https://picsum.photos/seed/${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}/${w}/${h}`;
+
+  const ensureCategory = async (name: string, displayOrder: number, imageUrl: string) => {
     const existing = await prisma.category.findFirst({ where: { name } });
     return existing
       ? prisma.category.update({
           where: { id: existing.id },
-          data: { displayOrder, isActive: true },
+          data: { displayOrder, isActive: true, imageUrl },
         })
-      : prisma.category.create({ data: { name, displayOrder } });
+      : prisma.category.create({ data: { name, displayOrder, imageUrl } });
   };
-  const hair = await ensureCategory('Hair', 0);
-  const nails = await ensureCategory('Nails', 1);
+  const hair = await ensureCategory('Hair', 0, imageFor('salon-hair'));
+  const nails = await ensureCategory('Nails', 1, imageFor('salon-nails'));
 
   const svc = (
     name: string,
@@ -163,7 +166,15 @@ async function main(): Promise<void> {
     baseDurationMin: number,
     description: string,
   ) => {
-    const data = { name, categoryId, basePrice, baseDurationMin, description, isActive: true };
+    const data = {
+      name,
+      categoryId,
+      basePrice,
+      baseDurationMin,
+      description,
+      imageUrl: imageFor(name, 400, 400),
+      isActive: true,
+    };
     return prisma.service.findFirst({ where: { categoryId, name } }).then((existing) =>
       existing
         ? prisma.service.update({ where: { id: existing.id }, data })

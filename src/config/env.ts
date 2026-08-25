@@ -12,6 +12,10 @@ const envSchema = z.object({
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
   RATE_LIMIT_WINDOW_MINUTES: z.coerce.number().int().positive().default(15),
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(200),
+  TRUST_PROXY: z
+    .string()
+    .default('false')
+    .transform((v) => v === 'true'),
   // Optional — without it, pushes run in simulated mode (logged, not sent)
   FIREBASE_SERVICE_ACCOUNT_JSON: z.string().optional(),
 });
@@ -29,3 +33,16 @@ if (!parsed.success) {
 export const env = parsed.data;
 export const isDev = env.NODE_ENV === 'development';
 export const isProd = env.NODE_ENV === 'production';
+
+// Production safety rails — refuse to boot in an unsafe state.
+if (isProd) {
+  if (env.JWT_ACCESS_SECRET === env.JWT_REFRESH_SECRET) {
+    // eslint-disable-next-line no-console
+    console.error('❌ Production requires distinct JWT access & refresh secrets');
+    process.exit(1);
+  }
+  if (env.CORS_ORIGIN === '*') {
+    // eslint-disable-next-line no-console
+    console.warn('⚠️  CORS is wide open ("*") in production — set CORS_ORIGIN to your app domains');
+  }
+}
