@@ -57,7 +57,7 @@ export async function listNotifications(
   ]);
 
   return {
-    items: items.map((n) => ({
+    items: items.map((n: (typeof items)[number]) => ({
       id: n.id,
       title: n.title,
       body: n.body,

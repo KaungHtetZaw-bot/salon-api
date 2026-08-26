@@ -48,7 +48,10 @@ export async function getHistory(customerId: string, page: number, pageSize: num
   ]);
 
   return {
-    items: items.map((t) => ({ ...t, createdAt: t.createdAt.toISOString() })),
+    items: items.map((t: (typeof items)[number]) => ({
+      ...t,
+      createdAt: t.createdAt.toISOString(),
+    })),
     total,
     page,
     pageSize,
@@ -69,7 +72,7 @@ export async function listRewards() {
     },
   });
 
-  return rewards.map((r) => ({
+  return rewards.map((r: (typeof rewards)[number]) => ({
     id: r.id,
     name: r.name,
     description: r.description,
@@ -159,7 +162,7 @@ export async function myRedemptions(customerId: string, page: number, pageSize: 
   ]);
 
   return {
-    items: items.map((r) => ({
+    items: items.map((r: (typeof items)[number]) => ({
       ...r,
       redeemedAt: r.redeemedAt.toISOString(),
       usedAt: r.usedAt?.toISOString() ?? null,

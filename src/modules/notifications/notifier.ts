@@ -27,7 +27,7 @@ export async function notifyUser(userId: string, payload: NotifyInput): Promise<
       where: { userId },
       select: { fcmToken: true },
     });
-    const tokens = devices.map((d) => d.fcmToken);
+    const tokens = devices.map((d: (typeof devices)[number]) => d.fcmToken);
 
     if (tokens.length > 0) {
       const result = await sendPush(tokens, payload);

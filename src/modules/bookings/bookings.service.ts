@@ -152,9 +152,12 @@ async function slotAvailable(
   return slotFits(start, end, {
     shift,
     appointments: appointments
-      .filter((a) => a.id !== ignoreAppointmentId)
-      .map((a) => ({ start: a.scheduledFor, end: a.endsAt })),
-    timeOff: timeOff.map((t) => ({ start: t.startsAt, end: t.endsAt })),
+      .filter((a: (typeof appointments)[number]) => a.id !== ignoreAppointmentId)
+      .map((a: (typeof appointments)[number]) => ({ start: a.scheduledFor, end: a.endsAt })),
+    timeOff: timeOff.map((t: (typeof timeOff)[number]) => ({
+      start: t.startsAt,
+      end: t.endsAt,
+    })),
     bufferMin,
   });
 }
@@ -213,8 +216,14 @@ export async function getAvailability(serviceId: string, dateStr: string, staffI
       if (
         !slotFits(s, e, {
           shift,
-          appointments: appointments.map((a) => ({ start: a.scheduledFor, end: a.endsAt })),
-          timeOff: timeOff.map((t) => ({ start: t.startsAt, end: t.endsAt })),
+          appointments: appointments.map((a: (typeof appointments)[number]) => ({
+            start: a.scheduledFor,
+            end: a.endsAt,
+          })),
+          timeOff: timeOff.map((t: (typeof timeOff)[number]) => ({
+            start: t.startsAt,
+            end: t.endsAt,
+          })),
           bufferMin: settings.slotBufferMinutes,
         })
       )
@@ -334,7 +343,7 @@ export async function listAppointments(user: NonNullable<AuthenticatedUser>, fil
     orderBy: { scheduledFor: 'asc' },
     include: APPT_INCLUDE,
   });
-  return appts.map((a) => serialize(a as AppointmentWithRelations));
+  return appts.map((a: (typeof appts)[number]) => serialize(a as AppointmentWithRelations));
 }
 
 export async function getAppointmentDetail(user: NonNullable<AuthenticatedUser>, id: string) {
@@ -654,7 +663,8 @@ export async function getSchedule(
     include: APPT_INCLUDE,
   });
 
-  const items = appts.map((a) => serialize(a as AppointmentWithRelations));
+  const items = appts.map((a: (typeof appts)[number]) =>
+    serialize(a as AppointmentWithRelations));
   return {
     date: dateStr,
     staff: { id: targetId, fullName: profile.user.fullName },

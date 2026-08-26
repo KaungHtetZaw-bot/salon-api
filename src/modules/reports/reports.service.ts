@@ -54,9 +54,12 @@ export async function getOverview(from?: string, to?: string) {
   ]);
 
   const statusCounts = Object.fromEntries(
-    byStatus.map((s) => [s.status as string, s._count._all]),
+    byStatus.map((s: (typeof byStatus)[number]) => [s.status as string, s._count._all]),
   );
-  const totalBookings = byStatus.reduce((acc, s) => acc + s._count._all, 0);
+  const totalBookings = byStatus.reduce(
+    (acc: number, s: (typeof byStatus)[number]) => acc + s._count._all,
+    0,
+  );
   const completedBookings = revenueAgg._count._all;
   const revenue = money(revenueAgg._sum.priceCharged);
 
@@ -90,7 +93,7 @@ export async function getRevenueSeries(
     GROUP BY 1
     ORDER BY 1`;
 
-  const series = rows.map((r) => ({
+  const series = rows.map((r: (typeof rows)[number]) => ({
     period: r.period.toISOString(),
     bookings: Number(r.bookings),
     revenue: Number(r.revenue),
@@ -99,8 +102,14 @@ export async function getRevenueSeries(
   return {
     range: { from: start.toISOString(), to: end.toISOString() },
     groupBy,
-    totalRevenue: series.reduce((acc, s) => acc + s.revenue, 0),
-    totalBookings: series.reduce((acc, s) => acc + s.bookings, 0),
+    totalRevenue: series.reduce(
+      (acc: number, s: (typeof series)[number]) => acc + s.revenue,
+      0,
+    ),
+    totalBookings: series.reduce(
+      (acc: number, s: (typeof series)[number]) => acc + s.bookings,
+      0,
+    ),
     series,
   };
 }
@@ -119,15 +128,15 @@ export async function getTopServices(limit: number, from?: string, to?: string) 
     take: limit,
   });
 
-  const serviceIds = grouped.map((g) => g.serviceId);
+  const serviceIds = grouped.map((g: (typeof grouped)[number]) => g.serviceId);
   const services = await prisma.service.findMany({
     where: { id: { in: serviceIds } },
     select: { id: true, name: true, category: { select: { name: true } } },
   });
-  const byId = new Map(services.map((s) => [s.id, s]));
+  const byId = new Map(services.map((s: (typeof services)[number]) => [s.id, s]));
 
   const items = grouped
-    .map((g) => ({
+    .map((g: (typeof grouped)[number]) => ({
       serviceId: g.serviceId,
       name: byId.get(g.serviceId)?.name ?? 'Unknown',
       category: byId.get(g.serviceId)?.category.name ?? 'Unknown',

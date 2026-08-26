@@ -133,5 +133,5 @@ export async function listStaffReviews(staffId: string, page: number, pageSize: 
     prisma.review.count({ where: { staffProfileId: staffId } }),
   ]);
 
-  return { items: items.map((r) => serialize(r)), total, page, pageSize };
+  return { items: items.map((r: (typeof items)[number]) => serialize(r)), total, page, pageSize };
 }
