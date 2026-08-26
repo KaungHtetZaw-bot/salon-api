@@ -2,11 +2,15 @@
   "name": "salon-shop-backend",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "24.x"
+  },
   "description": "REST API for the Salon Shop mobile app — bookings, staff, loyalty, reviews",
   "main": "dist/src/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc",
+    "postinstall": "prisma generate",
+    "build": "prisma generate && tsc",
     "start": "node dist/src/server.js",
     "start:migrate": "prisma migrate deploy && node dist/src/server.js",
     "typecheck": "tsc --noEmit",
