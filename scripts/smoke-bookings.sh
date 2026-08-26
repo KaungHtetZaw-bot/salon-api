@@ -186,8 +186,10 @@ echo "── Status lifecycle & loyalty ─────────────�
 CODE=$(req PATCH "/api/bookings/appointments/$WALKIN1/status" "$MTOKEN" '{"status":"COMPLETED"}')
 check "mark walk-in COMPLETED → 200" 200 "$CODE"
 
+# Exactly-once per appointment — scoped to THIS visit so historic
+# completions from earlier runs never skew the count.
 EARNED=$(docker exec salon-shop-db psql -U salon -d salon_shop -tAc \
-  "SELECT COUNT(*) FROM loyalty_transactions WHERE customer_id='$SARA_ID' AND type='EARNED' AND description='Visit completed';")
+  "SELECT COUNT(*) FROM loyalty_transactions WHERE appointment_id='$WALKIN1' AND type='EARNED';")
 check "loyalty +10 awarded exactly once" 1 "$EARNED"
 
 CODE=$(req PATCH "/api/bookings/appointments/$WALKIN1/status" "$MTOKEN" '{"status":"CANCELLED","reason":"oops"}')
