@@ -20,7 +20,13 @@ const envSchema = z.object({
   FIREBASE_SERVICE_ACCOUNT_JSON: z.string().optional(),
 });
 
-const parsed = envSchema.safeParse(process.env);
+// Treat blank env vars as unset so defaults apply (Vercel dashboards
+// often accumulate empty-string entries that would break coercion).
+const rawEnv = Object.fromEntries(
+  Object.entries(process.env).filter(([, v]) => v !== ''),
+);
+
+const parsed = envSchema.safeParse(rawEnv);
 
 if (!parsed.success) {
   // eslint-disable-next-line no-console
