@@ -1,4 +1,5 @@
 import { prisma } from '../../config/prisma';
+import { Prisma } from '../../generated/prisma/client';
 import { ApiError } from '../../utils/ApiError';
 import { hashPassword } from '../../utils/password.utils';
 import type {
@@ -18,7 +19,7 @@ async function ratingsFor(staffIds: string[]) {
   });
 
   return new Map(
-    grouped.map((g) => [
+    grouped.map((g: (typeof grouped)[number]) => [
       g.staffProfileId,
       { avg: g._avg.rating, count: g._count._all },
     ]),
@@ -41,9 +42,9 @@ export async function listStaff() {
     },
   });
 
-  const ratings = await ratingsFor(profiles.map((p) => p.id));
+  const ratings = await ratingsFor(profiles.map((p: (typeof profiles)[number]) => p.id));
 
-  return profiles.map((p) => ({
+  return profiles.map((p: (typeof profiles)[number]) => ({
     id: p.id, // same as the underlying user id
     fullName: p.user.fullName,
     avatarUrl: p.user.avatarUrl,
@@ -104,7 +105,7 @@ export async function getStaff(id: string) {
     bio: profile.bio,
     isBookable: profile.isBookable,
     rating: ratings.get(profile.id) ?? { avg: null, count: 0 },
-    services: profile.services.map((link) => ({
+    services: profile.services.map((link: (typeof profile.services)[number]) => ({
       id: link.service.id,
       name: link.service.name,
       description: link.service.description,
@@ -168,7 +169,7 @@ export async function createStaff(input: CreateStaffInput) {
   const { workingHours, ...userData } = input;
 
   // All-or-nothing: user row + profile + schedule succeed or fail together.
-  const profile = await prisma.$transaction(async (tx) => {
+  const profile = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const user = await tx.user.create({
       data: {
         fullName: userData.fullName,
@@ -207,7 +208,7 @@ export async function updateStaff(id: string, input: UpdateStaffInput) {
 
   const { fullName, phone, ...profileFields } = input;
 
-  return prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     if (fullName !== undefined || phone !== undefined) {
       await tx.user.update({
         where: { id },

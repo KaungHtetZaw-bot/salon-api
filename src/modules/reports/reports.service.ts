@@ -18,6 +18,19 @@ function resolveRange(from?: string, to?: string) {
 
 const money = (d: { toNumber(): number } | null | undefined) => d?.toNumber() ?? 0;
 
+type CompletedRow = { staffId: string; completed: number; revenue: number; minutes: number };
+type CancelledRow = { staffId: string; cancelled: number };
+type StaffUtilizationItem = {
+  staffId: string;
+  fullName: string;
+  isActive: boolean;
+  completedBookings: number;
+  cancelledBookings: number;
+  revenue: number;
+  estimatedCommission: number;
+  utilizationPct: number | null;
+};
+
 // ────────────────────────── Overview ─────────────────────────
 
 export async function getOverview(from?: string, to?: string) {
@@ -140,7 +153,7 @@ export async function getStaffPerformance(from?: string, to?: string) {
   const { start, end } = resolveRange(from, to);
 
   const [completedRows, cancelledRows, profiles] = await Promise.all([
-    prisma.$queryRaw<{ staffId: string; completed: number; revenue: number; minutes: number }[]>`
+    prisma.$queryRaw<CompletedRow[]>`
       SELECT staff_profile_id AS "staffId",
              COUNT(*)::int AS completed,
              COALESCE(SUM(price_charged), 0)::float8 AS revenue,
@@ -149,7 +162,7 @@ export async function getStaffPerformance(from?: string, to?: string) {
       WHERE status = 'COMPLETED'
         AND scheduled_for >= ${start} AND scheduled_for < ${end}
       GROUP BY 1`,
-    prisma.$queryRaw<{ staffId: string; cancelled: number }[]>`
+    prisma.$queryRaw<CancelledRow[]>`
       SELECT staff_profile_id AS "staffId",
              COUNT(*)::int AS cancelled
       FROM appointments
@@ -167,19 +180,22 @@ export async function getStaffPerformance(from?: string, to?: string) {
     }),
   ]);
 
-  const completedByStaff = new Map(completedRows.map((r) => [r.staffId, r]));
-  const cancelledByStaff = new Map(cancelledRows.map((r) => [r.staffId, r.cancelled]));
+  const completedByStaff = new Map(completedRows.map((r: CompletedRow) => [r.staffId, r]));
+  const cancelledByStaff = new Map(cancelledRows.map((r: CancelledRow) => [r.staffId, r.cancelled]));
 
   const daysInRange = Math.max((end.getTime() - start.getTime()) / 86_400_000, 0.001);
 
   const staffWithWork = new Set([...completedByStaff.keys(), ...cancelledByStaff.keys()]);
-  const relevantProfiles = profiles.filter((p) => p.isActive || staffWithWork.has(p.id));
+  const relevantProfiles = profiles.filter(
+    (p: (typeof profiles)[number]) => p.isActive || staffWithWork.has(p.id),
+  );
 
   const items = relevantProfiles
-    .map((p) => {
+    .map((p: (typeof profiles)[number]): StaffUtilizationItem => {
       const done = completedByStaff.get(p.id);
       const weeklyMinutes = p.workingHours.reduce(
-        (acc, h) => acc + (h.endMinute - h.startMinute),
+        (acc: number, h: { startMinute: number; endMinute: number }) =>
+          acc + (h.endMinute - h.startMinute),
         0,
       );
       const potentialMinutes = weeklyMinutes * (daysInRange / 7);
