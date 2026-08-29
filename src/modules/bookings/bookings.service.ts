@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import { prisma } from '../../config/prisma';
 import { ApiError } from '../../utils/ApiError';
 import type { AuthenticatedUser } from '../../middleware/auth.middleware';
-import { formatDateTime, notifyUserAsync } from '../notifications/notifier';
+import { formatDateTime, notifyAdminsAsync, notifyUserAsync } from '../notifications/notifier';
 import {
   LEAD_MINUTES,
   SLOT_STEP_MIN,
@@ -308,6 +308,16 @@ export async function createAppointment(customerId: string, input: CreateAppoint
       body: `${created.service.name} with ${created.staffProfile.user.fullName} · ${formatDateTime(created.scheduledFor)}`,
       data: { appointmentId: created.id, type: 'booking_created' },
     });
+    notifyUserAsync(created.staffProfileId, {
+      title: 'New appointment',
+      body: `${created.customer.fullName} booked ${created.service.name} · ${formatDateTime(created.scheduledFor)}`,
+      data: { appointmentId: created.id, type: 'booking_created' },
+    });
+    notifyAdminsAsync({
+      title: 'New appointment',
+      body: `${created.customer.fullName} booked ${created.service.name} · ${formatDateTime(created.scheduledFor)}`,
+      data: { appointmentId: created.id, type: 'booking_created' },
+    });
 
     return serialize(created as AppointmentWithRelations);
   } catch (err) {
@@ -567,6 +577,9 @@ export async function updateStatus(
 
   const apt = await prisma.appointment.findUnique({ where: { id } });
   if (!apt) throw ApiError.notFound('Appointment not found');
+  if (actor.role === 'STAFF' && apt.staffProfileId !== actor.id) {
+    throw ApiError.forbidden('You can only update appointments assigned to you');
+  }
   if (!TRANSITIONS[apt.status]?.includes(input.status)) {
     throw ApiError.conflict(`Illegal transition: ${apt.status} → ${input.status}`);
   }

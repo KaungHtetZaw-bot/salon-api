@@ -66,6 +66,7 @@ loyaltyRouter.patch(
 // ─────────────── mounted under /api/admin (already guarded) ───────────────
 export const adminEngagementRouter = Router();
 
+adminEngagementRouter.get('/reviews', validateQuery(paginationQuerySchema), controller.adminListReviews);
 adminEngagementRouter.post('/rewards', validateBody(createRewardSchema), controller.createReward);
 adminEngagementRouter.get('/rewards', controller.adminListRewards);
 adminEngagementRouter.patch(

@@ -24,6 +24,7 @@ import {
   reviewsRouter,
 } from './modules/engagement/engagement.routes';
 import { notificationsRouter } from './modules/notifications/notifications.routes';
+import { adminSettingsRouter } from './modules/settings/settings.routes';
 
 export function createApp(): express.Express {
   const app = express();
@@ -91,6 +92,7 @@ export function createApp(): express.Express {
   adminApi.use(authenticate, requireRole('ADMIN'));
   adminApi.use('/catalog', adminCatalogRouter);
   adminApi.use('/staff', adminStaffRouter);
+  adminApi.use('/settings', adminSettingsRouter);
   adminApi.use(adminEngagementRouter);
   adminApi.use('/reports', reportsRouter);
   api.use('/admin', adminApi);

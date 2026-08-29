@@ -49,6 +49,22 @@ export function notifyUserAsync(userId: string, payload: NotifyInput): void {
   void notifyUser(userId, payload);
 }
 
+/** Deliver an operational event to every active admin without delaying the request. */
+export function notifyAdminsAsync(payload: NotifyInput): void {
+  void (async () => {
+    try {
+      const admins = await prisma.user.findMany({
+        where: { role: 'ADMIN', status: 'ACTIVE' },
+        select: { id: true },
+      });
+      await Promise.all(admins.map((admin: (typeof admins)[number]) => notifyUser(admin.id, payload)));
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[notifier] failed to notify admins', err);
+    }
+  })();
+}
+
 export function formatDateTime(d: Date): string {
   return d.toLocaleString('en-GB', {
     weekday: 'short',

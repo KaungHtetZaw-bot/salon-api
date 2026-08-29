@@ -39,6 +39,9 @@ export const deleteReview = wrap(async (req) => {
 export const replyToReview = wrap((req) =>
   reviews.replyToReview(user(req), String(req.params.id), req.body.reply),
 );
+export const adminListReviews = wrap((req) =>
+  reviews.listAllReviews(pageOf(req).page, pageOf(req).pageSize),
+);
 
 // ────────────────────────── Loyalty ──────────────────────────
 

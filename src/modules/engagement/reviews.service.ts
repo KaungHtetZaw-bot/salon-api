@@ -10,6 +10,7 @@ const REVIEW_SELECT = {
   staffReply: true,
   createdAt: true,
   customer: { select: { fullName: true } },
+  staffProfile: { select: { user: { select: { fullName: true } } } },
   appointment: { select: { service: { select: { name: true } } } },
 } as const;
 
@@ -20,6 +21,7 @@ type ReviewRow = {
   staffReply: string | null;
   createdAt: Date;
   customer: { fullName: string };
+  staffProfile: { user: { fullName: string } };
   appointment: { service: { name: string } } | null;
 };
 
@@ -32,6 +34,7 @@ function serialize(r: ReviewRow) {
     staffReply: r.staffReply,
     createdAt: r.createdAt.toISOString(),
     customerFirstName: firstName,
+    staffName: r.staffProfile.user.fullName,
     serviceName: r.appointment?.service.name ?? null,
   };
 }
@@ -133,5 +136,19 @@ export async function listStaffReviews(staffId: string, page: number, pageSize: 
     prisma.review.count({ where: { staffProfileId: staffId } }),
   ]);
 
+  return { items: items.map((r: (typeof items)[number]) => serialize(r)), total, page, pageSize };
+}
+
+/** Admin review queue across active and inactive stylists. */
+export async function listAllReviews(page: number, pageSize: number) {
+  const [items, total] = await prisma.$transaction([
+    prisma.review.findMany({
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      select: REVIEW_SELECT,
+    }),
+    prisma.review.count(),
+  ]);
   return { items: items.map((r: (typeof items)[number]) => serialize(r)), total, page, pageSize };
 }
